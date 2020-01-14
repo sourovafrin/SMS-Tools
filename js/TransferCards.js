@@ -24,27 +24,28 @@ function get_collection(player) {
 	});
 }
 
-async function start(account, postingKey, selection,to) {
+async function start(account, postingKey, selection, to) {
 	let collection = await get_collection(account);
-	let extraCards=[];
+	let extraCards = [];
 	$('#log').val('');
 	if (selection === 'extra') {
 		extraCards = await getExtraCards(collection);
-	}else{
-		for(let i in collection){
-			if(collection[i].market_id===null){
+	} else {
+		for (let i in collection) {
+			if (collection[i].market_id === null) {
 				extraCards.push(collection[i].uid);
 			}
 		}
-		
+
 	}
 	if (extraCards.length > 0) {
-			let log = await transferCards(account, postingKey, extraCards,to);
-			logit($('#log'), log)
-		} else {
-			logit($('#log'),`${account} has no card to send!`);
-		}
-	
+
+		let log = await transferCards(account, postingKey, extraCards, to);
+		logit($('#log'), log)
+	} else {
+		logit($('#log'), `${account} has no card to send!`);
+	}
+
 }
 
 function getExtraCards(collection) {
@@ -84,14 +85,31 @@ function transferCards(account, postingKey, cards, to) {
 				to: to,
 				cards: cards
 			});
-		steem.broadcast.customJson(postingKey, [], [account], 'sm_gift_cards', json, (err, result) => {
-			if (err) {
-				resolve(`Transfer failed:${err}`);
-			} else {
-				resolve(`${account} transferred ${cards.length} cards (${cards}) to ${to}`);
-			}
 
-		});
+		if (window.steem_keychain) {
+			steem_keychain.requestCustomJson(account, 'sm_gift_cards', 'Posting', json, (err, result) => {
+				if (err) {
+					resolve(`Transfer failed:${err}`);
+				} else {
+					resolve(`${account} transferred ${cards.length} cards (${cards}) to ${to}`);
+				}
+
+			});
+		} else {
+			if(postingKey!=''){
+			steem.broadcast.customJson(postingKey, [], [account], 'sm_gift_cards', json, (err, result) => {
+				if (err) {
+					resolve(`Transfer failed:${err}`);
+				} else {
+					resolve(`${account} transferred ${cards.length} cards (${cards}) to ${to}`);
+				}
+
+			});
+			}else{
+				resolve(`Please enter the Posting Key!`);
+			}
+		}
+
 	});
 }
 
@@ -127,15 +145,10 @@ $('#transfer').submit(async function (e) {
 		$("#username").focus();
 		return;
 	}
-	if (postingKey == '') {
-		alert('Your Private Posting Key is missing.');
-		$("#posting-key").focus();
-		return;
-	}
 
 	let validAccount = await checkAccountName(to);
 	if (validAccount) {
-		start(username, postingKey, selection,to);
+		start(username, postingKey, selection, to);
 	} else {
 		logit($('#log'), username + " is an invalid steem ID");
 	}
