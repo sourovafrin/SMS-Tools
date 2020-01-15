@@ -154,12 +154,9 @@ function sellCardsAtMarketPrice(account, postingKey, cards, hasKeychain) {
 			log += `${cards[i].uid} listed at price ${cards[i].price}\n`;
 		}
 		if (hasKeychain && postingKey === '') {
-			steem_keychain.requestCustomJson(account, 'sm_sell_cards', "Posting", json, 'Steem Monsters Card Sell', function (err, response) {
-				if (err) {
-					resolve(`Listing failed:${err}`);
-				} else {
-					resolve(log);
-				}
+			steem_keychain.requestCustomJson(account, 'sm_sell_cards', "Posting", json, 'Steem Monsters Card Sell', function (response) {
+				console.log(response);
+				resolve(log);
 			});
 		} else {
 			steem.broadcast.customJson(postingKey, [], [account], 'sm_sell_cards', JSON.stringify(json), (err, result) => {
