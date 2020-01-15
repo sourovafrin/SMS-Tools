@@ -40,7 +40,7 @@ function get_for_sale_grouped() {
 
 }
 
-async function start(account, postingKey, selection, to) {
+async function start(account, postingKey, selection, to, hasKeychain) {
 	let collection = await get_collection(account);
 	let extraCards = [];
 	$('#log').val('');
@@ -56,7 +56,7 @@ async function start(account, postingKey, selection, to) {
 	}
 	if (extraCards.length > 0) {
 		if (selection === 'market') {
-			
+
 			let data = await get_for_sale_grouped();
 			let sellCards = [];
 			for (let i in extraCards) {
@@ -64,12 +64,12 @@ async function start(account, postingKey, selection, to) {
 					if (extraCards[i].card_detail_id === data[j].card_detail_id && extraCards[i].gold === data[j].gold && extraCards[i].edition === data[j].edition) {
 						let card = new Object();
 						card.uid = extraCards[i].uid;
-						card.price = (data[j].low_price_bcx*1.05).toFixed(3);
+						card.price = (data[j].low_price_bcx * 1.05).toFixed(3);
 						sellCards.push(card);
 					}
 				}
 			}
-			let log = await sellCardsAtMarketPrice(account, postingKey, sellCards);
+			let log = await sellCardsAtMarketPrice(account, postingKey, sellCards, hasKeychain);
 			logit($('#log'), log);
 
 		} else {
@@ -77,7 +77,7 @@ async function start(account, postingKey, selection, to) {
 			for (let i in extraCards) {
 				cards.push(extraCards[i].uid);
 			}
-			let log = await transferCards(account, postingKey, cards, to);
+			let log = await transferCards(account, postingKey, cards, to, hasKeychain);
 			logit($('#log'), log)
 		}
 	} else {
@@ -117,27 +117,33 @@ function hasAdded(cards, card) {
 
 }
 
-function transferCards(account, postingKey, cards, to) {
+function transferCards(account, postingKey, cards, to, hasKeychain) {
 	return new Promise(async function (resolve, reject) {
 		var json = JSON.stringify({
-				to: to,
-				cards: cards
-			});
-		steem.broadcast.customJson(postingKey, [], [account], 'sm_gift_cards', json, (err, result) => {
-			if (err) {
-				resolve(`Transfer failed:${err}`);
-			} else {
-				resolve(`${account} transferred ${cards.length} cards (${cards}) to ${to}`);
-			}
-
+			to: to,
+			cards: cards
 		});
+		if (hasKeychain && postingKey === '') {
+			steem_keychain.requestCustomJson(account, 'sm_gift_cards', "Posting", json, 'Steem Monsters Card Transfer', function (response) {
+				console.log(response);
+			});
+		} else {
+			steem.broadcast.customJson(postingKey, [], [account], 'sm_gift_cards', json, (err, result) => {
+				if (err) {
+					resolve(`Transfer failed:${err}`);
+				} else {
+					resolve(`${account} transferred ${cards.length} cards (${cards}) to ${to}`);
+				}
+
+			});
+		}
 	});
 }
 
-function sellCardsAtMarketPrice(account, postingKey, cards) {
+function sellCardsAtMarketPrice(account, postingKey, cards, hasKeychain) {
 	return new Promise(async function (resolve, reject) {
 		var json = [];
-		let log ='';
+		let log = '';
 		for (let i in cards) {
 			json.push({
 				cards: [cards[i].uid],
@@ -145,18 +151,25 @@ function sellCardsAtMarketPrice(account, postingKey, cards) {
 				price: cards[i].price,
 				fee_pct: 500
 			})
-			log +=`${cards[i].uid} listed at price ${cards[i].price}\n`;
+			log += `${cards[i].uid} listed at price ${cards[i].price}\n`;
 		}
-		//console.log(JSON.stringify(json));
-		
-		steem.broadcast.customJson(postingKey, [], [account], 'sm_sell_cards', JSON.stringify(json), (err, result) => {
-			if (err) {
-				resolve(`Transfer failed:${err}`);
-			} else {
+		if (hasKeychain && postingKey === '') {
+			steem_keychain.requestCustomJson(account, 'sm_sell_cards', "Posting", JSON.stringify(json), 'Steem Monsters Card Sell', function (response) {
+				if(response.error!=null){
+					resolve(response.error);
+				}
 				resolve(log);
-			}
+			});
+		} else {
+			steem.broadcast.customJson(postingKey, [], [account], 'sm_sell_cards', JSON.stringify(json), (err, result) => {
+				if (err) {
+					resolve(`Transfer failed:${err}`);
+				} else {
+					resolve(log);
+				}
 
-		});
+			});
+		}
 	});
 
 }
@@ -184,6 +197,7 @@ function clearSelection(tokens) {
 
 $('#transfer').submit(async function (e) {
 	e.preventDefault();
+	let hasKeychain = false;
 	const username = $("#username").val().trim();
 	const postingKey = $('#posting-key').val().trim();
 	const to = $("#to").val().trim();
@@ -193,7 +207,10 @@ $('#transfer').submit(async function (e) {
 		$("#username").focus();
 		return;
 	}
-	if (postingKey == '') {
+	if (window.steem_keychain) {
+		hasKeychain = true;
+	}
+	if (postingKey == '' && !hasKeychain) {
 		alert('Your Private Posting Key is missing.');
 		$("#posting-key").focus();
 		return;
@@ -205,7 +222,7 @@ $('#transfer').submit(async function (e) {
 		validAccount = true;
 	}
 	if (validAccount) {
-		start(username, postingKey, selection, to);
+		start(username, postingKey, selection, to, hasKeychain);
 	} else {
 		logit($('#log'), username + " is an invalid steem ID");
 	}
