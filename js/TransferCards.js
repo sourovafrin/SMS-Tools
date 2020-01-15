@@ -69,7 +69,7 @@ async function start(account, postingKey, selection, to, hasKeychain) {
 					}
 				}
 			}
-			let log = await sellCardsAtMarketPrice(account, postingKey, sellCards);
+			let log = await sellCardsAtMarketPrice(account, postingKey, sellCards, hasKeychain);
 			logit($('#log'), log);
 
 		} else {
@@ -123,7 +123,7 @@ function transferCards(account, postingKey, cards, to, hasKeychain) {
 			to: to,
 			cards: cards
 		});
-		if (hasKeychain) {
+		if (hasKeychain && postingKey === '') {
 			steem_keychain.requestCustomJson(account, 'sm_gift_cards', "Posting", json, 'Steem Monsters Card Transfer', function (response) {
 				console.log(response);
 			});
@@ -153,8 +153,7 @@ function sellCardsAtMarketPrice(account, postingKey, cards, hasKeychain) {
 			})
 			log += `${cards[i].uid} listed at price ${cards[i].price}\n`;
 		}
-		//console.log(JSON.stringify(json));
-		if (hasKeychain) {
+		if (hasKeychain && postingKey === '') {
 			steem_keychain.requestCustomJson(account, 'sm_sell_cards', "Posting", json, 'Steem Monsters Card Sell', function (err, response) {
 				if (err) {
 					resolve(`Listing failed:${err}`);
@@ -212,7 +211,7 @@ $('#transfer').submit(async function (e) {
 	if (window.steem_keychain) {
 		hasKeychain = true;
 	}
-	if (postingKey == '') {
+	if (postingKey == '' && !hasKeychain) {
 		alert('Your Private Posting Key is missing.');
 		$("#posting-key").focus();
 		return;
