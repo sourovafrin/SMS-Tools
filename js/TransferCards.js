@@ -24,27 +24,66 @@ function get_collection(player) {
 	});
 }
 
-async function start(account, postingKey, selection,to) {
+function get_for_sale_grouped() {
+	return new Promise(async function (resolve, reject) {
+		axios.get("https://steemmonsters.com/market/for_sale_grouped").then(function (response, error) {
+			if (!error && response.status == 200) {
+				let data = response.data;
+				resolve(data);
+			} else {
+				reject('get_for_sale_grouped error');
+			}
+
+		});
+
+	});
+
+}
+
+async function start(account, postingKey, selection, to) {
 	let collection = await get_collection(account);
-	let extraCards=[];
+	let extraCards = [];
 	$('#log').val('');
-	if (selection === 'extra') {
+	if (selection === 'extra' || selection === 'market') {
 		extraCards = await getExtraCards(collection);
-	}else{
-		for(let i in collection){
-			if(collection[i].market_id===null){
-				extraCards.push(collection[i].uid);
+	} else {
+		for (let i in collection) {
+			if (collection[i].market_id === null) {
+				extraCards.push(collection[i]);
 			}
 		}
-		
+
 	}
 	if (extraCards.length > 0) {
-			let log = await transferCards(account, postingKey, extraCards,to);
-			logit($('#log'), log)
+		if (selection === 'market') {
+			
+			let data = await get_for_sale_grouped();
+			let sellCards = [];
+			for (let i in extraCards) {
+				for (let j in data) {
+					if (extraCards[i].card_detail_id === data[j].card_detail_id && extraCards[i].gold === data[j].gold && extraCards[i].edition === data[j].edition) {
+						let card = new Object();
+						card.uid = extraCards[i].uid;
+						card.price = (data[j].low_price_bcx*1.05).toFixed(3);
+						sellCards.push(card);
+					}
+				}
+			}
+			let log = await sellCardsAtMarketPrice(account, postingKey, sellCards);
+			logit($('#log'), log);
+
 		} else {
-			logit($('#log'),`${account} has no card to send!`);
+			let cards = []
+			for (let i in extraCards) {
+				cards.push(extraCards[i].uid);
+			}
+			let log = await transferCards(account, postingKey, cards, to);
+			logit($('#log'), log)
 		}
-	
+	} else {
+		logit($('#log'), `${account} has no card to send/sell!`);
+	}
+
 }
 
 function getExtraCards(collection) {
@@ -54,7 +93,7 @@ function getExtraCards(collection) {
 		for (let i in collection) {
 			if (hasAdded(uniqueCards, collection[i].card_detail_id)) {
 				if (collection[i].level == 1 && collection[i].market_id == null) {
-					extraCards.push(collection[i].uid);
+					extraCards.push(collection[i]);
 				}
 			} else {
 				uniqueCards.push(collection[i].card_detail_id)
@@ -95,6 +134,33 @@ function transferCards(account, postingKey, cards, to) {
 	});
 }
 
+function sellCardsAtMarketPrice(account, postingKey, cards) {
+	return new Promise(async function (resolve, reject) {
+		var json = [];
+		let log ='';
+		for (let i in cards) {
+			json.push({
+				cards: [cards[i].uid],
+				currency: 'USD',
+				price: cards[i].price,
+				fee_pct: 500
+			})
+			log +=`${cards[i].uid} listed at price ${cards[i].price}\n`;
+		}
+		//console.log(JSON.stringify(json));
+		
+		steem.broadcast.customJson(postingKey, [], [account], 'sm_sell_cards', JSON.stringify(json), (err, result) => {
+			if (err) {
+				resolve(`Transfer failed:${err}`);
+			} else {
+				resolve(log);
+			}
+
+		});
+	});
+
+}
+
 function logit(dom, msg) {
 	if ((msg == undefined) || (msg == null) || (msg == '')) {
 		return;
@@ -132,12 +198,24 @@ $('#transfer').submit(async function (e) {
 		$("#posting-key").focus();
 		return;
 	}
-
-	let validAccount = await checkAccountName(to);
+	let validAccount;
+	if (selection != 'market') {
+		validAccount = await checkAccountName(to);
+	} else {
+		validAccount = true;
+	}
 	if (validAccount) {
-		start(username, postingKey, selection,to);
+		start(username, postingKey, selection, to);
 	} else {
 		logit($('#log'), username + " is an invalid steem ID");
 	}
 
 });
+
+$("select").change(function () {
+	if ($(this).val() == 'market') {
+		document.getElementById("to").disabled = true;
+	} else {
+		document.getElementById("to").disabled = false;
+	}
+}).trigger("change");
