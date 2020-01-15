@@ -117,7 +117,7 @@ function hasAdded(cards, card) {
 
 }
 
-function transferCards(account, postingKey, cards, to) {
+function transferCards(account, postingKey, cards, to,hasKeychain) {
 	return new Promise(async function (resolve, reject) {
 		var json = JSON.stringify({
 			to: to,
