@@ -117,14 +117,14 @@ function hasAdded(cards, card) {
 
 }
 
-function transferCards(account, postingKey, cards, to,hasKeychain) {
+function transferCards(account, postingKey, cards, to, hasKeychain) {
 	return new Promise(async function (resolve, reject) {
 		var json = JSON.stringify({
 			to: to,
 			cards: cards
 		});
 		if (hasKeychain) {
-			steem_keychain.requestCustomJson(account, 'sm_gift_cards', "Posting", json, 'Steem Monsters Card Transfer', function(response) {
+			steem_keychain.requestCustomJson(account, 'sm_gift_cards', "Posting", json, 'Steem Monsters Card Transfer', function (response) {
 				console.log(response);
 			});
 		} else {
@@ -140,7 +140,7 @@ function transferCards(account, postingKey, cards, to,hasKeychain) {
 	});
 }
 
-function sellCardsAtMarketPrice(account, postingKey, cards) {
+function sellCardsAtMarketPrice(account, postingKey, cards, hasKeychain) {
 	return new Promise(async function (resolve, reject) {
 		var json = [];
 		let log = '';
@@ -154,15 +154,24 @@ function sellCardsAtMarketPrice(account, postingKey, cards) {
 			log += `${cards[i].uid} listed at price ${cards[i].price}\n`;
 		}
 		//console.log(JSON.stringify(json));
+		if (hasKeychain) {
+			steem_keychain.requestCustomJson(account, 'sm_sell_cards', "Posting", json, 'Steem Monsters Card Sell', function (err, response) {
+				if (err) {
+					resolve(`Listing failed:${err}`);
+				} else {
+					resolve(log);
+				}
+			});
+		} else {
+			steem.broadcast.customJson(postingKey, [], [account], 'sm_sell_cards', JSON.stringify(json), (err, result) => {
+				if (err) {
+					resolve(`Transfer failed:${err}`);
+				} else {
+					resolve(log);
+				}
 
-		steem.broadcast.customJson(postingKey, [], [account], 'sm_sell_cards', JSON.stringify(json), (err, result) => {
-			if (err) {
-				resolve(`Transfer failed:${err}`);
-			} else {
-				resolve(log);
-			}
-
-		});
+			});
+		}
 	});
 
 }
