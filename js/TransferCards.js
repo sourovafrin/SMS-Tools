@@ -155,7 +155,9 @@ function sellCardsAtMarketPrice(account, postingKey, cards, hasKeychain) {
 		}
 		if (hasKeychain && postingKey === '') {
 			steem_keychain.requestCustomJson(account, 'sm_sell_cards', "Posting", JSON.stringify(json), 'Steem Monsters Card Sell', function (response) {
-				console.log(response);
+				if(response.error!=null){
+					resolve(response.error);
+				}
 				resolve(log);
 			});
 		} else {
