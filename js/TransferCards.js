@@ -184,6 +184,11 @@ function clearSelection(tokens) {
 
 $('#transfer').submit(async function (e) {
 	e.preventDefault();
+	if(window.steem_keychain) {
+		console.log('keychain installed')
+	} else {
+		console.log('keychain NOT installed')
+	}
 	const username = $("#username").val().trim();
 	const postingKey = $('#posting-key').val().trim();
 	const to = $("#to").val().trim();

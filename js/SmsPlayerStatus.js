@@ -301,7 +301,7 @@ $(document).ready(async function () {
             let string = await display(username,cards);
             htmlString += string;
         }
-        htmlString += '</tbody></table>';
+        htmlString += '</table>';
         $('div#display').html(htmlString);
 
     });
