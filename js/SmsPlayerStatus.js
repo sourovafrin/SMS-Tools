@@ -6,15 +6,24 @@ Date.prototype.addHours = function (h) {
 }
 
 
-async function display(player) {
+async function display(player,cards) {
     return new Promise(async function (resolve, reject) {
         let details = await getPlayerDetails(player)
         let quest = await get_player_quests(player);
         let ids = await getClaimIds(player);
-        let images = await getImage(ids);
+        let images = await getImage(ids,cards);
         let rc = await get_player_rc(player);
-        let dec = await get_balances(player,'DEC');
-        let ecr = await get_balances(player,'ECR');
+        let balances = await get_balances(player);
+        let dec=0;
+        let ecr=0;
+        for(let i in balances){
+            if(balances[i].token==='DEC'){
+                dec = balances[i].balance;
+            }
+            if(balances[i].token==='ECR'){
+                ecr=balances[i].balance;
+            }
+        }
         let status = quest[0].claim_date == null ? 'In Progress' : 'Completed';
         let created_date = new Date(quest[0]['created_date']);
         let now = new Date()
@@ -127,10 +136,10 @@ function getClaimIds(player) {
         const url = "https://api.steemmonsters.io/players/history?username=" + player + "&from_block=-1&limit=1&types=sm_claim_reward";
         axios.get(url).then(function (response, error) {
             if (!error && response.status == 200) {
-                var info = response.data;
-                var claims = [];
-                var ids = JSON.parse(info[0].result);
-                for (var i in ids) {
+                let info = response.data;
+                let claims = [];
+                let ids = JSON.parse(info[0].result);
+                for (let i in ids) {
                     let newObj = new Object();
                     newObj.id=ids[i].card_detail_id;
                     newObj.isGold=ids[i].gold;
@@ -142,17 +151,13 @@ function getClaimIds(player) {
     });
 }
 
-function getImage(ids) {
+function getImage(ids,cards) {
     return new Promise(function (resolve, reject) {
-        const url = "https://steemmonsters.com/cards/get_details";
-        axios.get(url).then(function (response, error) {
-            var urls = [];
-            if (!error && response.status == 200) {
-                var info = response.data;
-                for (var i in ids) {
-                    for (var j in info) {
-                        if (ids[i].id == info[j].id) {
-                            let url = 'https://s3.amazonaws.com/steemmonsters/cards_beta/' + info[j].name.replace(' ', '%20');
+            let urls = [];
+                for (let i in ids) {
+                    for (let j in cards) {
+                        if (ids[i].id == cards[j].id) {
+                            let url = 'https://s3.amazonaws.com/steemmonsters/cards_beta/' + cards[j].name.replace(' ', '%20');
                             if (ids[i].isGold == true) {
                                 url += '_gold.png';
                             } else {
@@ -163,10 +168,20 @@ function getImage(ids) {
                     }
                 }
                 resolve(urls);
+        });
+
+}
+
+function get_details(){
+    return new Promise(function (resolve, reject) {
+        const url = "https://steemmonsters.com/cards/get_details";
+        axios.get(url).then(function (response, error) {
+            if (!error && response.status == 200) {
+                let info = response.data;
+                resolve(info);
             }
         })
     });
-
 }
 
 function get_player_rc(player){
@@ -184,17 +199,12 @@ function get_player_rc(player){
     });
 }
 
-function get_balances(player,token){
+function get_balances(player){
     return new Promise(function (resolve, reject) {
         axios.get("https://steemmonsters.com/players/balances?username="+player).then(function(response,error){
             if (!error && response.status == 200) {
                 let balances = response.data
-                for(let i in balances){
-                    if(balances[i].token==token){
-                        resolve(balances[i].balance);
-                    }
-                }
-                resolve(0);                
+                resolve(balances);                
             }else{
                 reject('get_balances');
             }
@@ -285,9 +295,10 @@ $(document).ready(async function () {
         const input = $('#username').val();
         let usernames = input.split(',');
         let htmlString = '<table id="dvlist" class="display" style="width:100%">';
+        let cards = await get_details();
         for (let i in usernames) {
             let username = usernames[i];
-            let string = await display(username);
+            let string = await display(username,cards);
             htmlString += string;
         }
         htmlString += '</tbody></table>';
