@@ -154,7 +154,7 @@ function sellCardsAtMarketPrice(account, postingKey, cards, hasKeychain) {
 			log += `${cards[i].uid} listed at price ${cards[i].price}\n`;
 		}
 		if (hasKeychain && postingKey === '') {
-			steem_keychain.requestCustomJson(account, 'sm_sell_cards', "Posting", json, 'Steem Monsters Card Sell', function (response) {
+			steem_keychain.requestCustomJson(account, 'sm_sell_cards', "Posting", JSON.stringify(json), 'Steem Monsters Card Sell', function (response) {
 				console.log(response);
 				resolve(log);
 			});
