@@ -69,16 +69,26 @@ async function start(account, postingKey, selection, to, hasKeychain) {
 					}
 				}
 			}
-			let log = await sellCardsAtMarketPrice(account, postingKey, sellCards, hasKeychain);
-			logit($('#log'), log);
+			let i, j, chunk, max = 20;
+			for (i = 0, j = sellCards.length; i < j; i += chunk) {
+				chunk = sellCards.slice(i, i + max);
+				let log = await sellCardsAtMarketPrice(account, postingKey, chunk, hasKeychain);
+				logit($('#log'), log);
+			}
+			
 
 		} else {
 			let cards = []
 			for (let i in extraCards) {
 				cards.push(extraCards[i].uid);
 			}
-			let log = await transferCards(account, postingKey, cards, to, hasKeychain);
-			logit($('#log'), log)
+			let i, j, chunk, max = 20;
+			for (i = 0, j = cards.length; i < j; i += chunk) {
+				chunk = cards.slice(i, i + max);
+				let log = await transferCards(account, postingKey, chunk, to, hasKeychain);
+				logit($('#log'), log)
+			}
+			
 		}
 	} else {
 		logit($('#log'), `${account} has no card to send/sell!`);
@@ -125,7 +135,7 @@ function transferCards(account, postingKey, cards, to, hasKeychain) {
 		});
 		if (hasKeychain && postingKey === '') {
 			steem_keychain.requestCustomJson(account, 'sm_gift_cards', "Posting", json, 'Steem Monsters Card Transfer', function (response) {
-				if(response.error==null){
+				if (response.error == null) {
 					resolve(response.error);
 				}
 				resolve(`${account} transferred ${cards.length} cards (${cards}) to ${to}`);
@@ -158,7 +168,7 @@ function sellCardsAtMarketPrice(account, postingKey, cards, hasKeychain) {
 		}
 		if (hasKeychain && postingKey === '') {
 			steem_keychain.requestCustomJson(account, 'sm_sell_cards', "Posting", JSON.stringify(json), 'Steem Monsters Card Sell', function (response) {
-				if(response.error!=null){
+				if (response.error != null) {
 					resolve(response.error);
 				}
 				resolve(log);
