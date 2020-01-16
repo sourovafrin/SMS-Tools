@@ -64,7 +64,7 @@ async function start(account, postingKey, selection, to, hasKeychain) {
 					if (extraCards[i].card_detail_id === data[j].card_detail_id && extraCards[i].gold === data[j].gold && extraCards[i].edition === data[j].edition) {
 						let card = new Object();
 						card.uid = extraCards[i].uid;
-						card.price = (data[j].low_price_bcx * 1.05).toFixed(3);
+						card.price = (data[j].low_price * 1.05).toFixed(3);
 						sellCards.push(card);
 					}
 				}
@@ -82,7 +82,7 @@ async function start(account, postingKey, selection, to, hasKeychain) {
 			for (let i in extraCards) {
 				cards.push(extraCards[i].uid);
 			}
-			let i, j, chunk, max = 20;
+			let i, j, chunk, max = 40;
 			for (i = 0, j = cards.length; i < j; i += chunk) {
 				chunk = cards.slice(i, i + max);
 				let log = await transferCards(account, postingKey, chunk, to, hasKeychain);
