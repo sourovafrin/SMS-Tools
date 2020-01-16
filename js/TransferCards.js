@@ -40,7 +40,7 @@ function get_for_sale_grouped() {
 
 }
 
-async function start(account, postingKey, selection, to, hasKeychain) {
+async function start(account, postingKey, selection, to, hasKeychain,percent) {
 	let collection = await get_collection(account);
 	let extraCards = [];
 	$('#log').val('');
@@ -59,12 +59,13 @@ async function start(account, postingKey, selection, to, hasKeychain) {
 
 			let data = await get_for_sale_grouped();
 			let sellCards = [];
+			let percentIncreased = 1+percent/100;
 			for (let i in extraCards) {
 				for (let j in data) {
 					if (extraCards[i].card_detail_id === data[j].card_detail_id && extraCards[i].gold === data[j].gold && extraCards[i].edition === data[j].edition) {
 						let card = new Object();
 						card.uid = extraCards[i].uid;
-						card.price = (data[j].low_price * 1.05).toFixed(3);
+						card.price = (data[j].low_price * percentIncreased).toFixed(3);
 						sellCards.push(card);
 					}
 				}
@@ -213,6 +214,10 @@ $('#transfer').submit(async function (e) {
 	let hasKeychain = false;
 	const username = $("#username").val().trim();
 	const postingKey = $('#posting-key').val().trim();
+	const percent =$("#amount").val().trim();
+	if(percent.length===0){
+		percent=5;
+	}
 	const to = $("#to").val().trim();
 	const selection = $("#selection").val();
 	if (steem.utils.validateAccountName(username) !== null) {
@@ -235,7 +240,7 @@ $('#transfer').submit(async function (e) {
 		validAccount = true;
 	}
 	if (validAccount) {
-		start(username, postingKey, selection, to, hasKeychain);
+		start(username, postingKey, selection, to, hasKeychain,percent);
 	} else {
 		logit($('#log'), username + " is an invalid steem ID");
 	}
@@ -245,7 +250,10 @@ $('#transfer').submit(async function (e) {
 $("select").change(function () {
 	if ($(this).val() == 'market') {
 		document.getElementById("to").disabled = true;
+		document.getElementById("amount").disabled = false;
 	} else {
 		document.getElementById("to").disabled = false;
+		document.getElementById("amount").disabled = true;
+
 	}
 }).trigger("change");
