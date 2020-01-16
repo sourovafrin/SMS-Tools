@@ -189,7 +189,9 @@ function get_player_rc(player){
     return new Promise(function (resolve, reject) {
         axios.get("https://anyx.io/v1/rc_api/find_rc_accounts?accounts="+player).then(function (response,error) {
             if (!error && response.status == 200) {
-                let ac = response.data
+                let ac = response.data;
+                if(ac==null)
+                    resolve('NA');
                 let rcPercent = ac.rc_accounts[0].rc_manabar.current_mana / ac.rc_accounts[0].max_rc*100;
                 
                 resolve(rcPercent.toFixed(2));
@@ -297,6 +299,7 @@ $(document).ready(async function () {
         let usernames = input.split(',');
         let htmlString = '<table id="dvlist" class="display" style="width:100%">';
         let cards = await get_details();
+        totalRewards=0;
         for (let i in usernames) {
             let username = usernames[i];
             let string = await display(username,cards);
