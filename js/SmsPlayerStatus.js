@@ -1,5 +1,5 @@
 
-
+let totalRewards=0;
 Date.prototype.addHours = function (h) {
     this.setHours(this.getHours() + h);
     return this;
@@ -24,6 +24,7 @@ async function display(player,cards) {
                 ecr=balances[i].balance;
             }
         }
+        totalRewards +=details.reward;
         let status = quest[0].claim_date == null ? 'In Progress' : 'Completed';
         let created_date = new Date(quest[0]['created_date']);
         let now = new Date()
@@ -301,7 +302,7 @@ $(document).ready(async function () {
             let string = await display(username,cards);
             htmlString += string;
         }
-        htmlString += '</tbody></table>';
+        htmlString += `<tr><td><span class="names">Total Reward Cards</span></td><td>${totalRewards}</td></tr></table>`;
         $('div#display').html(htmlString);
 
     });
