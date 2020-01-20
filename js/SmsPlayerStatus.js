@@ -1,5 +1,6 @@
 
 let totalRewards=0;
+let totalDec=0;
 Date.prototype.addHours = function (h) {
     this.setHours(this.getHours() + h);
     return this;
@@ -25,6 +26,7 @@ async function display(player,cards) {
             }
         }
         totalRewards +=details.reward;
+        totalDec +=dec;
         let status = quest[0].claim_date == null ? 'In Progress' : 'Completed';
         let created_date = new Date(quest[0]['created_date']);
         let now = new Date()
@@ -300,13 +302,17 @@ $(document).ready(async function () {
         let htmlString = '<table id="dvlist" class="display" style="width:100%">';
         let cards = await get_details();
         totalRewards=0;
+        totalDec=0;
         for (let i in usernames) {
             let username = usernames[i];
             let string = await display(username,cards);
             htmlString += string;
         }
-        htmlString += `<tr><td><span class="names">Total Reward Cards</span></td><td>${totalRewards}</td></tr></table>`;
+        htmlString += `</table>`;
+        let summary = `<B>Total Season Reward Cards:</B>${totalRewards}<br><B>Total DEC:</B>${totalDec}`;
+        $('div#summary').html(summary);
         $('div#display').html(htmlString);
+       
 
     });
 });
