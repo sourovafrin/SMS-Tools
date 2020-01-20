@@ -1,32 +1,32 @@
 
-let totalRewards=0;
-let totalDec=0;
+let totalRewards = 0;
+let totalDec = 0;
 Date.prototype.addHours = function (h) {
     this.setHours(this.getHours() + h);
     return this;
 }
 
 
-async function display(player,cards) {
+async function display(player, cards) {
     return new Promise(async function (resolve, reject) {
         let details = await getPlayerDetails(player)
         let quest = await get_player_quests(player);
         let ids = await getClaimIds(player);
-        let images = await getImage(ids,cards);
+        let images = await getImage(ids, cards);
         let rc = await get_player_rc(player);
         let balances = await get_balances(player);
-        let dec=0;
-        let ecr=0;
-        for(let i in balances){
-            if(balances[i].token==='DEC'){
+        let dec = 0;
+        let ecr = 0;
+        for (let i in balances) {
+            if (balances[i].token === 'DEC') {
                 dec = balances[i].balance;
             }
-            if(balances[i].token==='ECR'){
-                ecr=balances[i].balance;
+            if (balances[i].token === 'ECR') {
+                ecr = balances[i].balance;
             }
         }
-        totalRewards +=details.reward;
-        totalDec +=dec;
+        totalRewards += details.reward;
+        totalDec += dec;
         let status = quest[0].claim_date == null ? 'In Progress' : 'Completed';
         let created_date = new Date(quest[0]['created_date']);
         let now = new Date()
@@ -48,7 +48,7 @@ async function display(player,cards) {
 
         htmlString += '<tr>';
         htmlString += '<td><span class="names">Current Capture Rate</span></td>';
-        htmlString += `<td>${ecr/100}%</td>`;
+        htmlString += `<td>${ecr / 100}%</td>`;
         htmlString += '</tr>';
 
         htmlString += '<tr>';
@@ -56,7 +56,7 @@ async function display(player,cards) {
         htmlString += `<td>${dec}</td>`;
         htmlString += '</tr>';
 
-      
+
 
         htmlString += '<tr>';
         htmlString += '<td><span class="names">Daily Quest</span></td>';
@@ -136,46 +136,51 @@ function get_player_quests(player) {
 
 function getClaimIds(player) {
     return new Promise(function (resolve, reject) {
-        const url = "https://api.steemmonsters.io/players/history?username=" + player + "&from_block=-1&limit=1&types=sm_claim_reward";
+        const url = "https://api.steemmonsters.io/players/history?username=" + player + "&from_block=-1&limit=5&types=sm_claim_reward";
         axios.get(url).then(function (response, error) {
             if (!error && response.status == 200) {
-                let info = response.data;
+                let data = response.data;
                 let claims = [];
-                let ids = JSON.parse(info[0].result);
-                for (let i in ids) {
-                    let newObj = new Object();
-                    newObj.id=ids[i].card_detail_id;
-                    newObj.isGold=ids[i].gold;
-                    claims.push(newObj);
+                for (let info of data) {
+                    if (!info.error) {
+                        let ids = JSON.parse(info.result);
+                        for (let i in ids) {
+                            let newObj = new Object();
+                            newObj.id = ids[i].card_detail_id;
+                            newObj.isGold = ids[i].gold;
+                            claims.push(newObj);
+                        }
+                        return resolve(claims);
+                    }
                 }
-                resolve(claims);
+                return resolve(claims);
             }
         })
     });
 }
 
-function getImage(ids,cards) {
+function getImage(ids, cards) {
     return new Promise(function (resolve, reject) {
-            let urls = [];
-                for (let i in ids) {
-                    for (let j in cards) {
-                        if (ids[i].id == cards[j].id) {
-                            let url = 'https://s3.amazonaws.com/steemmonsters/cards_beta/' + cards[j].name.replace(' ', '%20');
-                            if (ids[i].isGold == true) {
-                                url += '_gold.png';
-                            } else {
-                                url += '.png';
-                            }
-                            urls.push(url);
-                        }
+        let urls = [];
+        for (let i in ids) {
+            for (let j in cards) {
+                if (ids[i].id == cards[j].id) {
+                    let url = 'https://s3.amazonaws.com/steemmonsters/cards_beta/' + cards[j].name.replace(' ', '%20');
+                    if (ids[i].isGold == true) {
+                        url += '_gold.png';
+                    } else {
+                        url += '.png';
                     }
+                    urls.push(url);
                 }
-                resolve(urls);
-        });
+            }
+        }
+        resolve(urls);
+    });
 
 }
 
-function get_details(){
+function get_details() {
     return new Promise(function (resolve, reject) {
         const url = "https://steemmonsters.com/cards/get_details";
         axios.get(url).then(function (response, error) {
@@ -187,30 +192,30 @@ function get_details(){
     });
 }
 
-function get_player_rc(player){
+function get_player_rc(player) {
     return new Promise(function (resolve, reject) {
-        axios.get("https://anyx.io/v1/rc_api/find_rc_accounts?accounts="+player).then(function (response,error) {
+        axios.get("https://anyx.io/v1/rc_api/find_rc_accounts?accounts=" + player).then(function (response, error) {
             if (!error && response.status == 200) {
                 let ac = response.data;
-                if(ac==null)
+                if (ac == null)
                     resolve('NA');
-                let rcPercent = ac.rc_accounts[0].rc_manabar.current_mana / ac.rc_accounts[0].max_rc*100;
-                
+                let rcPercent = ac.rc_accounts[0].rc_manabar.current_mana / ac.rc_accounts[0].max_rc * 100;
+
                 resolve(rcPercent.toFixed(2));
-            }else{
+            } else {
                 reject('get_player_rc error');
             }
         })
     });
 }
 
-function get_balances(player){
+function get_balances(player) {
     return new Promise(function (resolve, reject) {
-        axios.get("https://steemmonsters.com/players/balances?username="+player).then(function(response,error){
+        axios.get("https://steemmonsters.com/players/balances?username=" + player).then(function (response, error) {
             if (!error && response.status == 200) {
                 let balances = response.data
-                resolve(balances);                
-            }else{
+                resolve(balances);
+            } else {
                 reject('get_balances');
             }
         })
@@ -301,18 +306,18 @@ $(document).ready(async function () {
         let usernames = input.split(',');
         let htmlString = '<table id="dvlist" class="display" style="width:100%">';
         let cards = await get_details();
-        totalRewards=0;
-        totalDec=0;
+        totalRewards = 0;
+        totalDec = 0;
         for (let i in usernames) {
             let username = usernames[i];
-            let string = await display(username,cards);
+            let string = await display(username, cards);
             htmlString += string;
         }
         htmlString += `</table>`;
         let summary = `<B>Total Season Reward Cards:</B>${totalRewards}<br><B>Total DEC:</B>${totalDec}`;
         $('div#summary').html(summary);
         $('div#display').html(htmlString);
-       
+
 
     });
 });
