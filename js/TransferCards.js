@@ -136,7 +136,7 @@ function transferCards(account, postingKey, cards, to, hasKeychain) {
 		});
 		if (hasKeychain && postingKey === '') {
 			steem_keychain.requestCustomJson(account, 'sm_gift_cards', "Posting", json, 'Steem Monsters Card Transfer', function (response) {
-				if (response.error == null) {
+				if (response.error != null) {
 					resolve(response.error);
 				}
 				resolve(`${account} transferred ${cards.length} cards (${cards}) to ${to}`);
