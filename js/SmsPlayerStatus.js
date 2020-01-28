@@ -141,13 +141,19 @@ function getClaimIds(player) {
             if (!error && response.status == 200) {
                 let data = response.data;
                 let claims = [];
+                let cards;
                 for (let info of data) {
                     if (!info.error) {
                         let ids = JSON.parse(info.result);
-                        for (let i in ids) {
+                        if (ids.cards !== undefined) {
+                            cards = ids.cards;
+                        } else {
+                            cards = ids;
+                        }
+                        for (let card of cards) {
                             let newObj = new Object();
-                            newObj.id = ids[i].card_detail_id;
-                            newObj.isGold = ids[i].gold;
+                            newObj.id = card.card_detail_id;
+                            newObj.isGold = card.gold;
                             claims.push(newObj);
                         }
                         return resolve(claims);
