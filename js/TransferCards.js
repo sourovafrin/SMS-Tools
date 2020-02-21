@@ -322,6 +322,7 @@ $("select").change(function () {
 	
 	else if($(this).val() == 'cancel'){
 		document.getElementById("to").disabled = true;
+		document.getElementById("amount").disabled = true;
 		document.getElementById("submit").textContent  = "Cancel All";
 	}
 	else {
