@@ -24,6 +24,27 @@ function get_collection(player) {
 	});
 }
 
+function get_market_orders(player) {
+	return new Promise(async function (resolve, reject) {
+		let orders=[];
+		axios.get("https://steemmonsters.com/cards/collection/" + player).then(function (response, error) {
+			if (!error && response.status == 200) {
+				let cards = response.data.cards;
+				for(let card of cards){
+					if(card.market_id!==null){
+						orders.push(card.market_id);
+					}
+				}
+				resolve(orders);
+			} else {
+				reject('get_collection error');
+			}
+
+		});
+
+	});
+}
+
 function get_for_sale_grouped() {
 	return new Promise(async function (resolve, reject) {
 		axios.get("https://steemmonsters.com/market/for_sale_grouped").then(function (response, error) {
@@ -43,10 +64,22 @@ function get_for_sale_grouped() {
 async function start(account, postingKey, selection, to, hasKeychain,percent) {
 	let collection = await get_collection(account);
 	let extraCards = [];
+	let orders =[];
 	$('#log').val('');
 	if (selection === 'extra' || selection === 'market') {
 		extraCards = await getExtraCards(collection);
-	} else {
+	} 
+	else if(selection ==='cancel'){
+		orders = await get_market_orders(account);
+			let i, j, chunk, max = 40;
+			for (i = 0, j = orders.length; i < j; i += chunk) {
+				chunk = orders.slice(i, i + max);
+				let log = await cancelCards(account, postingKey, chunk, hasKeychain);
+				logit($('#log'), log)
+			}
+	
+	}
+	else {
 		for (let i in collection) {
 			if (collection[i].market_id === null) {
 				extraCards.push(collection[i]);
@@ -91,7 +124,12 @@ async function start(account, postingKey, selection, to, hasKeychain,percent) {
 			}
 			
 		}
-	} else {
+	} 
+	else if(orders.length>0){
+		console.log(orders);
+	}
+	
+	else {
 		logit($('#log'), `${account} has no card to send/sell!`);
 	}
 
@@ -147,6 +185,31 @@ function transferCards(account, postingKey, cards, to, hasKeychain) {
 					resolve(`Transfer failed:${err}`);
 				} else {
 					resolve(`${account} transferred ${cards.length} cards (${cards}) to ${to}`);
+				}
+
+			});
+		}
+	});
+}
+
+function cancelCards(account, postingKey, cards, hasKeychain) {
+	return new Promise(async function (resolve, reject) {
+		var json = JSON.stringify({
+			trx_ids: cards
+		});
+		if (hasKeychain && postingKey === '') {
+			steem_keychain.requestCustomJson(account, 'sm_cancel_sell', "Posting", json, 'Steem Monsters Cancel Market Orders', function (response) {
+				if (response.error != null) {
+					resolve(response.error);
+				}
+				resolve(`${account} cancelled ${cards.length} market orders (${cards})`);
+			});
+		} else {
+			steem.broadcast.customJson(postingKey, [], [account], 'sm_cancel_sell', json, (err, result) => {
+				if (err) {
+					resolve(`Cancellation failed:${err}`);
+				} else {
+					resolve(`${account} cancelled ${cards.length} market orders (${cards})`);
 				}
 
 			});
@@ -234,10 +297,13 @@ $('#transfer').submit(async function (e) {
 		return;
 	}
 	let validAccount;
-	if (selection != 'market') {
-		validAccount = await checkAccountName(to);
-	} else {
+	console.log(selection)
+	if (selection === 'market' || selection ==='cancel') {
 		validAccount = true;
+		
+	} 
+	else {
+		validAccount = await checkAccountName(to);
 	}
 	if (validAccount) {
 		start(username, postingKey, selection, to, hasKeychain,percent);
@@ -251,9 +317,17 @@ $("select").change(function () {
 	if ($(this).val() == 'market') {
 		document.getElementById("to").disabled = true;
 		document.getElementById("amount").disabled = false;
-	} else {
+		document.getElementById("submit").textContent  = "Sell All";
+	} 
+	
+	else if($(this).val() == 'cancel'){
+		document.getElementById("to").disabled = true;
+		document.getElementById("submit").textContent  = "Cancel All";
+	}
+	else {
 		document.getElementById("to").disabled = false;
 		document.getElementById("amount").disabled = true;
+		document.getElementById("submit").textContent  = "Transfer All";
 
 	}
 }).trigger("change");
