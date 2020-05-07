@@ -14,7 +14,7 @@ async function display(player, cards) {
 			let quest = await get_player_quests(player);
 		let ids = await getClaimIds(player);
 		let images = await getImage(ids, cards);
-		let rc = await get_player_rc(player);
+		// let rc = await get_player_rc(player);
 		let balances = await get_balances(player);
 		let dec,ecr,legendary,gold,orb = 0;
 		for (let i in balances) {
@@ -49,11 +49,13 @@ async function display(player, cards) {
 		htmlString += '<td><span class="names">Player</span></td>';
 		htmlString += `<td>${details.name}</td>`;
 		htmlString += '</tr>';
-		htmlString += '<tr>';
-		htmlString += '<tr>';
-		htmlString += '<td><span class="names">Resource Credits</span></td>';
-		htmlString += `<td>${rc}%</td>`;
-		htmlString += '</tr>';
+        // htmlString += '<tr>';
+        
+		// htmlString += '<tr>';
+		// htmlString += '<td><span class="names">Resource Credits</span></td>';
+		// htmlString += `<td>${rc}%</td>`;
+        // htmlString += '</tr>';
+        
 		htmlString += '<tr>';
 		htmlString += '<td><span class="names">Current Rating</span></td>';
 		htmlString += `<td>${details.rating}/${details.season_max_rating}</td>`;
