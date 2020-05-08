@@ -1,8 +1,9 @@
-
+let isLoading = false;
 let totalRewards = 0;
 let totalDec = 0;
-let totalLegendary,totalGold,totalOrb=0;
-let leagues=[];
+let totalLegendary, totalGold, totalOrb = 0;
+let leagues = [];
+let totalCommon = 0, totalCommonGold = 0, totalRare = 0, totalRareGold = 0, totalEpic = 0, totalEpicGold = 0, totalLegend = 0, totalLegendGold = 0;
 Date.prototype.addHours = function (h) {
 	this.setHours(this.getHours() + h);
 	return this;
@@ -11,12 +12,48 @@ Date.prototype.addHours = function (h) {
 async function display(player, cards) {
 	return new Promise(async function (resolve, reject) {
 		let details = await getPlayerDetails(player)
-			let quest = await get_player_quests(player);
+		let quest = await get_player_quests(player);
 		let ids = await getClaimIds(player);
 		let images = await getImage(ids, cards);
 		// let rc = await get_player_rc(player);
 		let balances = await get_balances(player);
-		let dec,ecr,legendary,gold,orb = 0;
+		let rarityMap = await getAllCards(player);
+		let dec = 0, ecr = 0, legendary = 0, gold = 0, orb = 0;
+		let common = 0, common_gold = 0, rare = 0, rare_gold = 0, epic = 0, epic_gold = 0, legend = 0, legend_gold = 0;
+		for (let [k, v] of rarityMap) {
+			if (k === 1) {
+				common = v;
+				totalCommon += Number(v);
+			} else if (k === '1-gold') {
+				common_gold = v;
+				totalCommonGold += Number(v);
+
+			} else if (k === 2) {
+				rare = v;
+				totalRare += Number(v);
+
+			} else if (k === '2-gold') {
+				rare_gold = v;
+				totalRareGold += Number(v);
+
+			} else if (k === 3) {
+				epic = v;
+				totalEpic += Number(v);
+
+			} else if (k === '3-gold') {
+				epic_gold = v;
+				totalEpicGold += Number(v);
+
+			} else if (k === 4) {
+				legend = v;
+				totalLegend += Number(v);
+
+			} else if (k === '4-gold') {
+				legend_gold = v;
+				totalLegendGold += Number(v);
+
+			}
+		}
 		for (let i in balances) {
 			if (balances[i].token === 'DEC') {
 				dec = balances[i].balance;
@@ -33,29 +70,37 @@ async function display(player, cards) {
 			if (balances[i].token === 'ORB') {
 				orb = balances[i].balance;
 			}
-			
+
 		}
 		totalRewards += details.reward;
 		totalDec += dec;
 		totalLegendary += legendary;
 		totalGold += gold;
-		totalOrb +=orb;
-		let status = quest[0].claim_date == null ? 'In Progress' : 'Completed';
-		let created_date = new Date(quest[0]['created_date']);
-		let now = new Date()
-			let reset_time = created_date.addHours(23);
+		totalOrb += orb;
+		let status;
+		let created_date;
+		let reset_time;
+		if (quest[0] === undefined) {
+			status = "Haven't claimed anything yet";
+			created_date = 'N/A';
+			reset_time = 'N/A';
+		} else {
+			status = quest[0].claim_date == null ? 'In Progress' : 'Completed';
+			created_date = new Date(quest[0]['created_date']);
+			reset_time = created_date.addHours(23);
+		}
 		let htmlString = '';
 		htmlString += '<tr>';
 		htmlString += '<td><span class="names">Player</span></td>';
 		htmlString += `<td>${details.name}</td>`;
 		htmlString += '</tr>';
-        // htmlString += '<tr>';
-        
+		// htmlString += '<tr>';
+
 		// htmlString += '<tr>';
 		// htmlString += '<td><span class="names">Resource Credits</span></td>';
 		// htmlString += `<td>${rc}%</td>`;
-        // htmlString += '</tr>';
-        
+		// htmlString += '</tr>';
+
 		htmlString += '<tr>';
 		htmlString += '<td><span class="names">Current Rating</span></td>';
 		htmlString += `<td>${details.rating}/${details.season_max_rating}</td>`;
@@ -70,25 +115,33 @@ async function display(player, cards) {
 		htmlString += '<td><span class="names">DEC Balances</span></td>';
 		htmlString += `<td>${dec}</td>`;
 		htmlString += '</tr>';
-		
-		htmlString += '<tr>';
-		htmlString += '<td><span class="names">Legendary Potion</span></td>';
-		htmlString += `<td>${legendary}</td>`;
-		htmlString += '</tr>';
-		
-		htmlString += '<tr>';
-		htmlString += '<td><span class="names">Gold Potion</span></td>';
-		htmlString += `<td>${gold}</td>`;
-		htmlString += '</tr>';
-		
+
 		htmlString += '<tr>';
 		htmlString += '<td><span class="names">ORB</span></td>';
 		htmlString += `<td>${orb}</td>`;
 		htmlString += '</tr>';
 
 		htmlString += '<tr>';
+		htmlString += '<td><span class="names">Potion Stats</span></td>';
+		htmlString += `<td>Legendary Potion: ${legendary}<br/>Gold Potion: ${gold}</td>`;
+		htmlString += '</tr>';
+
+
+
+
+		htmlString += '<tr>';
+		htmlString += '<td><span class="names">Collection Stats</span></td>';
+		htmlString += `<td>Common: ${common} | Gold: ${common_gold}<br/>Rare:  ${rare} | Gold: ${rare_gold}<br/>Epic: ${epic} | Gold: ${epic_gold}<br/>Legendary: ${legend} | Gold: ${legend_gold}</td>`;
+		htmlString += '</tr>';
+
+
+		htmlString += '<tr>';
 		htmlString += '<td><span class="names">Daily Quest</span></td>';
-		htmlString += `<td>${quest[0].name} (${quest[0].completed_items}/${quest[0].total_items})</td>`;
+		if (quest[0] === undefined) {
+			htmlString += `<td> N/A </td>`;
+		} else {
+			htmlString += `<td>${quest[0].name} (${quest[0].completed_items}/${quest[0].total_items})</td>`;
+		}
 		htmlString += '</tr>';
 		if (status === 'Completed') {
 			htmlString += '<tr>';
@@ -203,7 +256,7 @@ function getClaimIds(player) {
 								newObj.potion_type = reward.potion_type;
 								newObj.quantity = reward.quantity;
 								claims.push(newObj);
-							}else if(reward.type ==='pack'){
+							} else if (reward.type === 'pack') {
 								let newObj = new Object();
 								newObj.type = 'pack';
 								newObj.quantity = reward.quantity;
@@ -256,7 +309,7 @@ function getImage(ids, cards) {
 				image.quantity = ids[i].quantity;
 				urls.push(image)
 
-			}else if (ids[i].type === 'pack') {
+			} else if (ids[i].type === 'pack') {
 				let image = new Object();
 				image.url = 'https://d36mxiodymuqjm.cloudfront.net/website/ui_elements/shop/img_essence-orb.png';
 				image.quantity = ids[i].quantity;
@@ -303,7 +356,7 @@ function get_balances(player) {
 		axios.get("https://steemmonsters.com/players/balances?username=" + player).then(function (response, error) {
 			if (!error && response.status == 200) {
 				let balances = response.data
-					resolve(balances);
+				resolve(balances);
 			} else {
 				reject('get_balances');
 			}
@@ -312,35 +365,101 @@ function get_balances(player) {
 	});
 }
 
-function hasAdded(leagues,leagueName){
-	for(let league of leagues){
-		if(league.name===leagueName){
-			return true;
+function find_cards(card_ids) {
+	return new Promise(function (resolve, reject) {
+		let card_ids_str = '';
+		if (card_ids instanceof Array) {
+			card_ids_str = card_ids.join();
+		} else {
+			card_ids_str = card_ids
 		}
-		
-	}
-	return false;
-	
-	
-}
-function addLeague(leagues,leagueName){
-	let league = new Object();
-	league.name = leagueName;
-	league.count =1;
-	leagues.push(league);
-	
+		axios.get('https://steemmonsters.com/cards/find?ids=' + card_ids_str).then(function (response, error) {
+			if (!error && response.status == 200) {
+				var info = response.data;
+				resolve(info);
+			} else {
+				reject('find_cards error');
+			}
+		})
+	});
+
 }
 
-function updateLeague(leagues,leagueName){
-	for(let league of leagues){
-		if(league.name===leagueName){
+function get_collection(player) {
+	return new Promise(function (resolve, reject) {
+		axios.get('https://steemmonsters.com/cards/collection/' + player).then(function (response, error) {
+			if (!error && response.status == 200) {
+				var info = response.data.cards;
+				resolve(info);
+			} else {
+				console.log(player)
+				reject('get_collection error')
+			}
+		});
+	});
+}
+
+
+async function getAllCards(player) {
+	return new Promise(async function (resolve, reject) {
+		let collections = await get_collection(player);
+		let rarityMap = new Map();
+		let card_ids = [];
+		for (let i in collections) {
+			card_ids.push(collections[i].uid);
+		}
+		if (card_ids.length != 0) {
+			let cards = await find_cards(card_ids);
+			cards.forEach(card => {
+				if (card.gold) {
+					if (rarityMap.get(card.details.rarity + "-gold")) {
+						rarityMap.set(card.details.rarity + "-gold", rarityMap.get(card.details.rarity) + 1);
+					} else {
+						rarityMap.set(card.details.rarity + "-gold", 1);
+					}
+				} else {
+					if (rarityMap.get(card.details.rarity)) {
+						rarityMap.set(card.details.rarity, rarityMap.get(card.details.rarity) + 1);
+					} else {
+						rarityMap.set(card.details.rarity, 1);
+					}
+				}
+
+			});
+		}
+		resolve(rarityMap);
+	});
+}
+
+function hasAdded(leagues, leagueName) {
+	for (let league of leagues) {
+		if (league.name === leagueName) {
+			return true;
+		}
+
+	}
+	return false;
+
+
+}
+function addLeague(leagues, leagueName) {
+	let league = new Object();
+	league.name = leagueName;
+	league.count = 1;
+	leagues.push(league);
+
+}
+
+function updateLeague(leagues, leagueName) {
+	for (let league of leagues) {
+		if (league.name === leagueName) {
 			league.count++;
 			return;
 		}
-		
+
 	}
 	return;
-	
+
 }
 
 function getPlayerDetails(player) {
@@ -364,57 +483,57 @@ function getPlayerDetails(player) {
 				playerDetails.reward = 0;
 			} else if (seasonRating >= 100 && seasonRating <= 399) {
 				playerDetails.league = 'Bronze 3'
-					playerDetails.reward = 5;
+				playerDetails.reward = 5;
 
 			} else if (seasonRating >= 400 && seasonRating <= 699) {
 				playerDetails.league = 'Bronze 2'
-					playerDetails.reward = 7;
+				playerDetails.reward = 7;
 			} else if (seasonRating >= 700 && seasonRating <= 999) {
 				playerDetails.league = 'Bronze 1'
-					playerDetails.reward = 9;
+				playerDetails.reward = 9;
 			} else if (seasonRating >= 1000 && seasonRating <= 1299) {
 				playerDetails.league = 'Silver 3'
-					playerDetails.reward = 12;
+				playerDetails.reward = 12;
 			} else if (seasonRating >= 1300 && seasonRating <= 1599) {
 				playerDetails.league = 'Silver 2'
-					playerDetails.reward = 15;
+				playerDetails.reward = 15;
 			} else if (seasonRating >= 1600 && seasonRating <= 1899) {
 				playerDetails.league = 'Silver 1'
-					playerDetails.reward = 18;
+				playerDetails.reward = 18;
 			} else if (seasonRating >= 1900 && seasonRating <= 2199) {
 				playerDetails.league = 'Gold 3'
-					playerDetails.reward = 22;
+				playerDetails.reward = 22;
 			} else if (seasonRating >= 2200 && seasonRating <= 2499) {
 				playerDetails.league = 'Gold 2'
-					playerDetails.reward = 26;
+				playerDetails.reward = 26;
 			} else if (seasonRating >= 2500 && seasonRating <= 2799) {
 				playerDetails.league = 'Gold 1'
-					playerDetails.reward = 30;
+				playerDetails.reward = 30;
 			} else if (seasonRating >= 2800 && seasonRating <= 3099) {
 				playerDetails.league = 'Diamon 3'
-					playerDetails.reward = 40;
+				playerDetails.reward = 40;
 			} else if (seasonRating >= 3100 && seasonRating <= 3399) {
 				playerDetails.league = 'Diamon 2'
-					playerDetails.reward = 50;
+				playerDetails.reward = 50;
 			} else if (seasonRating >= 3400 && seasonRating <= 3699) {
 				playerDetails.league = 'Diamon 1'
-					playerDetails.reward = 60;
+				playerDetails.reward = 60;
 			} else if (seasonRating >= 3700 && seasonRating <= 4199) {
 				playerDetails.league = 'Champion 3'
-					playerDetails.reward = 80;
+				playerDetails.reward = 80;
 			} else if (seasonRating >= 4200 && seasonRating <= 4699) {
 				playerDetails.league = 'Champion 2'
-					playerDetails.reward = 120;
+				playerDetails.reward = 120;
 			} else if (seasonRating >= 4700) {
 				playerDetails.league = 'Champion 1'
-					playerDetails.reward = 150;
+				playerDetails.reward = 150;
 			}
-			if(hasAdded(leagues,playerDetails.league)){
-					updateLeague(leagues,playerDetails.league);
-					
-				}else{
-					addLeague(leagues,playerDetails.league);
-				}
+			if (hasAdded(leagues, playerDetails.league)) {
+				updateLeague(leagues, playerDetails.league);
+
+			} else {
+				addLeague(leagues, playerDetails.league);
+			}
 			resolve(playerDetails);
 		}
 	});
@@ -424,26 +543,26 @@ $(document).ready(async function () {
 
 	$('#view').submit(async function (e) {
 		e.preventDefault();
+
 		$('#log').val('');
+		$('div#display').html('');
+		$('div#summary').html(`Loading...`)
 		const input = $('#username').val();
 		let usernames = input.split(',');
 		let htmlString = '<table id="dvlist" class="display" style="width:100%">';
 		let cards = await get_details();
-		totalRewards = 0;
-		totalDec = 0;
-		totalLegendary=0
-		totalGold=0;
-		totalOrb=0;
-		leagues=[];
+		totalRewards = 0, totalDec = 0, totalLegendary = 0, totalGold = 0, totalOrb = 0, totalCommon = 0, totalCommonGold = 0, totalRare = 0, totalRareGold = 0, totalEpic = 0, totalEpicGold = 0, totalLegend = 0, totalLegendGold = 0;
+		leagues = [];
 		for (let i in usernames) {
 			let username = usernames[i];
 			let string = await display(username, cards);
 			htmlString += string;
 		}
 		htmlString += `</table>`;
-		let summary = `<B>Total Season Loot Chests:</B>${totalRewards}<br/><B>Total DEC:</B>${totalDec.toFixed(3)}<br/><B>Total Legendary Potion:</B>${totalLegendary}<br/><B>Total Gold Potion:</B>${totalGold}<br/><B>Total Orb:</B>${totalOrb}`;
-		for(let league of leagues){
-			summary +=`<br/><B>League:</B>${league.name} <B>Count:</B>${league.count}`;
+		let summary = `<B>Total Season Loot Chests:</B>${totalRewards}<br/><B>Total DEC:</B>${totalDec.toFixed(3)}<br/><B>Total Legendary/Gold Potion:</B>${totalLegendary}/${totalGold}<br/><B>Total Orb:</B>${totalOrb}
+		<br/><B>Total Common/Gold Cards</B>: ${totalCommon}/${totalCommonGold}<br/><B>Total Rare/Gold Cards</B>: ${totalRare}/${totalRareGold}<br/><B>Total Epic/Gold Cards</B>: ${totalEpic}/${totalEpicGold}<br/><B>Total Legendary/Gold Cards</B>: ${totalLegend}/${totalLegendGold}`;
+		for (let league of leagues) {
+			summary += `<br/><B>League:</B>${league.name} <B>Count:</B>${league.count}`;
 		}
 		$('div#summary').html(summary);
 		$('div#display').html(htmlString);
