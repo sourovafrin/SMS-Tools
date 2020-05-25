@@ -71,7 +71,7 @@ async function start(account, postingKey, selection, to, hasKeychain,percent) {
 	} 
 	else if(selection ==='cancel'){
 		orders = await get_market_orders(account);
-			let i, j, chunk, max = 40;
+			let i, j, chunk, max = 100;
 			for (i = 0, j = orders.length; i < j; i += chunk) {
 				chunk = orders.slice(i, i + max);
 				let log = await cancelCards(account, postingKey, chunk, hasKeychain);
@@ -116,7 +116,7 @@ async function start(account, postingKey, selection, to, hasKeychain,percent) {
 			for (let i in extraCards) {
 				cards.push(extraCards[i].uid);
 			}
-			let i, j, chunk, max = 40;
+			let i, j, chunk, max = 100;
 			for (i = 0, j = cards.length; i < j; i += chunk) {
 				chunk = cards.slice(i, i + max);
 				let log = await transferCards(account, postingKey, chunk, to, hasKeychain);
