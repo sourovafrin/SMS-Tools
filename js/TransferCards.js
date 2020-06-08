@@ -1,6 +1,6 @@
-const client = new dsteem.Client('https://api.steem.bts.tw');
+const client = new dsteem.Client('https://anyx.io');
 steem.api.setOptions({
-	url: 'https://api.steem.bts.tw'
+	url: 'https://anyx.io'
 });
 
 // Checking if the already exists
